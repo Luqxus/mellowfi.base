@@ -1,22 +1,21 @@
 import { BrowserProvider, Contract, parseUnits } from "ethers";
 import { useAccount, Config, useWriteContract, useReadContract } from "wagmi";
-import {WriteContractMutate} from "wagmi/query";
+import { WriteContractMutate } from "wagmi/query";
 import { useState, useEffect } from "react";
 import StableTokenABI from "./cusd-abi.json";
 import CollateralManagerABI from "./CollateralManager.json";
-import LoanManagerABI from "./LoanManager.json"
+import LoanManagerABI from "./LoanManager.json";
 import { Address } from "viem";
 import { readContract } from "viem/actions";
 
 export const useWeb3 = () => {
   const { address } = useAccount();
-  const COLLATERAL_MANAGER_CONTRACT = "0x7629C8b277f46B9B60cFC5e7EeFaE59c5D9a060C";
+  const COLLATERAL_MANAGER_CONTRACT =
+    "0x7629C8b277f46B9B60cFC5e7EeFaE59c5D9a060C";
   const USDC_CONTRACT_ADDRESS = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
   const LOAN_MANAGER_CONTRACT = "0xEc3e425197140d7336994942580c50d4f3e57C87";
 
-  const {writeContract} = useWriteContract();
-
-  
+  const { writeContract } = useWriteContract();
 
   const getSigner = async () => {
     if (typeof window !== "undefined" && window.ethereum) {
@@ -34,7 +33,12 @@ export const useWeb3 = () => {
     args: any[];
   }
 
-  const executeTransaction = async ({ contractAddress, abi, method, args }: ExecuteTransactionParams): Promise<any> => {
+  const executeTransaction = async ({
+    contractAddress,
+    abi,
+    method,
+    args,
+  }: ExecuteTransactionParams): Promise<any> => {
     const signer = await getSigner();
     const contract = new Contract(contractAddress, abi, signer);
     const tx = await contract[method](...args);
@@ -42,17 +46,25 @@ export const useWeb3 = () => {
     return tx;
   };
 
-  const executeReadOnly = async ({ contractAddress, abi, method, args }: ExecuteTransactionParams): Promise<any> => {
+  const executeReadOnly = async ({
+    contractAddress,
+    abi,
+    method,
+    args,
+  }: ExecuteTransactionParams): Promise<any> => {
     const signer = await getSigner();
     const contract = new Contract(contractAddress, abi, signer);
-    const result = await contract[method](...args);  // Call the read-only method
-    return result;  // Return the result directly
+    const result = await contract[method](...args); // Call the read-only method
+    return result; // Return the result directly
   };
 
-  const depositNativeCollateral = async (amount: string, func: WriteContractMutate<Config,unknown>) => {
+  const depositNativeCollateral = async (
+    amount: string,
+    func: WriteContractMutate<Config, unknown>
+  ) => {
     const amountInWei = parseUnits(amount, 18);
 
-    try{
+    try {
       const tx = writeContract({
         abi: CollateralManagerABI.abi,
         address: COLLATERAL_MANAGER_CONTRACT,
@@ -64,18 +76,21 @@ export const useWeb3 = () => {
     }
   };
 
-  const depositStableCollateral = async (amount: string, func: WriteContractMutate<Config,unknown>) => {
+  const depositStableCollateral = async (
+    amount: string,
+    func: WriteContractMutate<Config, unknown>
+  ) => {
     const amountInWei = parseUnits(amount, 6);
 
-    try{
-      writeContract({
+    try {
+      func({
         abi: StableTokenABI.abi,
         address: USDC_CONTRACT_ADDRESS,
         functionName: "approve",
         args: [COLLATERAL_MANAGER_CONTRACT, amountInWei],
       });
 
-      const tx = writeContract({
+      const tx = func({
         abi: CollateralManagerABI.abi,
         address: COLLATERAL_MANAGER_CONTRACT,
         functionName: "depositStableCollateral",
@@ -87,7 +102,6 @@ export const useWeb3 = () => {
       console.error(e);
     }
 
-
     // Approve the collateral manager to spend USDT
     // await executeTransaction({ contractAddress: cUER_CONTRACT_ADDRESS, abi: StableTokenABI.abi, method: "approve", args: [COLLATERAL_MANAGER_CONTRACT, amountInWei] });
 
@@ -95,17 +109,19 @@ export const useWeb3 = () => {
     // return await executeTransaction({ contractAddress: COLLATERAL_MANAGER_CONTRACT, abi: CollateralManagerABI.abi, method: "depositStableCollateral", args: [amountInWei] });
   };
 
-  const getMaxLoanAmount = async () => {
-    try{
-      const tx = useReadContract({
+  const getMaxLoanAmount = async (func: Function) => {
+    console.log(
+      "dskjlfkldsf jsdlkfj ldsjkflj wejkfodp kdpokfop sdkfpo dskfpok]]-pok"
+    );
+    try {
+      const tx = func({
         abi: LoanManagerABI.abi,
         address: LOAN_MANAGER_CONTRACT,
         functionName: "getMaxLoanAmount",
         args: [address],
-      })
+      });
       return tx;
-    }
-    catch (e) {
+    } catch (e) {
       console.error(e);
     }
   };
@@ -114,26 +130,45 @@ export const useWeb3 = () => {
     // const userColl =  await executeReadOnly({ contractAddress: LOAN_MANAGER_CONTRACT, abi: LoanManagerABI.abi, method: "getCollateralBalanceinUSD", args: [address] });
     // return userColl;
     return 1;
-
   };
 
   const requestLoan = async (amount: string) => {
     const amountInWei = parseUnits(amount, 18);
-    return await executeTransaction({ contractAddress: LOAN_MANAGER_CONTRACT, abi: LoanManagerABI.abi, method: "requestLoan", args: [amountInWei] });
-  }
+    return await executeTransaction({
+      contractAddress: LOAN_MANAGER_CONTRACT,
+      abi: LoanManagerABI.abi,
+      method: "requestLoan",
+      args: [amountInWei],
+    });
+  };
 
   const repayLoan = async (amount: string) => {
     const amountInWei = parseUnits(amount, 18);
-    return await executeTransaction({ contractAddress: LOAN_MANAGER_CONTRACT, abi: LoanManagerABI.abi, method: "repayLoan", args: [amountInWei] });
-  }
+    return await executeTransaction({
+      contractAddress: LOAN_MANAGER_CONTRACT,
+      abi: LoanManagerABI.abi,
+      method: "repayLoan",
+      args: [amountInWei],
+    });
+  };
 
   const getLoanBalancewithInterest = async () => {
-    return await executeReadOnly({ contractAddress: LOAN_MANAGER_CONTRACT, abi: LoanManagerABI.abi, method: "getLoanBalancewithInterest", args: [address] });
-  }
+    return await executeReadOnly({
+      contractAddress: LOAN_MANAGER_CONTRACT,
+      abi: LoanManagerABI.abi,
+      method: "getLoanBalancewithInterest",
+      args: [address],
+    });
+  };
 
   const releaseFunds = async () => {
-    return await executeTransaction({ contractAddress: COLLATERAL_MANAGER_CONTRACT, abi: CollateralManagerABI.abi, method: "releaseFunds", args: [] });
-  }
+    return await executeTransaction({
+      contractAddress: COLLATERAL_MANAGER_CONTRACT,
+      abi: CollateralManagerABI.abi,
+      method: "releaseFunds",
+      args: [],
+    });
+  };
 
   const signTransaction = async () => {
     const signer = await getSigner();
